@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import type { Quake } from "@/lib/usgs";
@@ -14,18 +14,35 @@ function FitBounds({ quakes }: { quakes: Quake[] }) {
   return null;
 }
 
+function useIsDark() {
+  const [dark, setDark] = useState(false);
+  useEffect(() => {
+    const update = () => setDark(document.documentElement.classList.contains("dark"));
+    update();
+    const obs = new MutationObserver(update);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
+  return dark;
+}
+
 export function QuakeMap({ quakes, selectedId, onSelect }: { quakes: Quake[]; selectedId?: string | null; onSelect?: (id: string) => void }) {
+  const dark = useIsDark();
+  const tileUrl = dark
+    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+    : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
   return (
     <MapContainer
       center={[20, 0]}
       zoom={2}
       scrollWheelZoom
-      className="h-full w-full rounded-lg"
-      style={{ background: "oklch(0.18 0.022 250)" }}
+      className="h-full w-full"
+      style={{ background: dark ? "oklch(0.18 0.018 250)" : "oklch(0.96 0.005 250)" }}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+        key={dark ? "dark" : "light"}
+        attribution='&copy; OSM &copy; CARTO'
+        url={tileUrl}
       />
       <FitBounds quakes={quakes} />
       {quakes.map((q) => {
@@ -36,17 +53,17 @@ export function QuakeMap({ quakes, selectedId, onSelect }: { quakes: Quake[]; se
           <CircleMarker
             key={q.id}
             center={[lat, lng]}
-            radius={Math.max(4, mag * 3) + (isSel ? 4 : 0)}
+            radius={Math.max(3, mag * 2.5) + (isSel ? 3 : 0)}
             pathOptions={{
               color: magColor(mag),
               fillColor: magColor(mag),
               fillOpacity: 0.55,
-              weight: isSel ? 3 : 1,
+              weight: isSel ? 2.5 : 1,
             }}
             eventHandlers={{ click: () => onSelect?.(q.id) }}
           >
             <Popup>
-              <div className="text-sm">
+              <div className="text-xs">
                 <div className="font-semibold">{q.properties.title}</div>
                 <div>{new Date(q.properties.time).toLocaleString()}</div>
                 <div>Depth: {q.geometry.coordinates[2].toFixed(1)} km</div>
