@@ -135,7 +135,7 @@ function Dashboard() {
 
         <section className="grid gap-4 lg:grid-cols-3">
           <div className="space-y-4 lg:col-span-2">
-            <div className="h-[440px] overflow-hidden rounded-lg border border-border bg-card shadow-[var(--shadow-card)]">
+            <div className="relative z-0 isolate h-[440px] overflow-hidden rounded-lg border border-border bg-card shadow-[var(--shadow-card)]">
               {mounted ? (
                 <QuakeMap quakes={quakes} selectedId={selectedId} onSelect={setSelectedId} />
               ) : (
