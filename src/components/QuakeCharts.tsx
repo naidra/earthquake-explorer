@@ -1,8 +1,31 @@
+import { useEffect, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from "recharts";
 import type { Quake } from "@/lib/usgs";
 import { magColor } from "@/lib/usgs";
 
+function useThemeColors() {
+  const [colors, setColors] = useState({ grid: "#e5e7eb", axis: "#6b7280", bg: "#ffffff", border: "#e5e7eb", fg: "#111827" });
+  useEffect(() => {
+    const compute = () => {
+      const s = getComputedStyle(document.documentElement);
+      setColors({
+        grid: s.getPropertyValue("--border").trim() || "#e5e7eb",
+        axis: s.getPropertyValue("--muted-foreground").trim() || "#6b7280",
+        bg: s.getPropertyValue("--popover").trim() || "#fff",
+        border: s.getPropertyValue("--border").trim() || "#e5e7eb",
+        fg: s.getPropertyValue("--foreground").trim() || "#111",
+      });
+    };
+    compute();
+    const obs = new MutationObserver(compute);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
+  return colors;
+}
+
 export function MagnitudeHistogram({ quakes }: { quakes: Quake[] }) {
+  const c = useThemeColors();
   const buckets = [
     { range: "<2", min: -Infinity, max: 2 },
     { range: "2-3", min: 2, max: 3 },
@@ -17,23 +40,17 @@ export function MagnitudeHistogram({ quakes }: { quakes: Quake[] }) {
     color: magColor((b.min === -Infinity ? 1 : b.min) + 0.5),
   }));
   return (
-    <ResponsiveContainer width="100%" height={180}>
-      <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.3 0.03 250)" />
-        <XAxis dataKey="range" stroke="oklch(0.7 0.03 250)" fontSize={11} />
-        <YAxis stroke="oklch(0.7 0.03 250)" fontSize={11} allowDecimals={false} />
+    <ResponsiveContainer width="100%" height={160}>
+      <BarChart data={data} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke={c.grid} vertical={false} />
+        <XAxis dataKey="range" stroke={c.axis} fontSize={10} tickLine={false} axisLine={false} />
+        <YAxis stroke={c.axis} fontSize={10} allowDecimals={false} tickLine={false} axisLine={false} />
         <Tooltip
-          contentStyle={{
-            background: "oklch(0.21 0.025 250)",
-            border: "1px solid oklch(0.3 0.03 250)",
-            borderRadius: 8,
-            color: "oklch(0.96 0.01 240)",
-          }}
+          cursor={{ fill: c.grid, opacity: 0.3 }}
+          contentStyle={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 6, color: c.fg, fontSize: 12 }}
         />
-        <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-          {data.map((d, i) => (
-            <Cell key={i} fill={d.color} />
-          ))}
+        <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+          {data.map((d, i) => <Cell key={i} fill={d.color} />)}
         </Bar>
       </BarChart>
     </ResponsiveContainer>
@@ -41,6 +58,7 @@ export function MagnitudeHistogram({ quakes }: { quakes: Quake[] }) {
 }
 
 export function DepthDistribution({ quakes }: { quakes: Quake[] }) {
+  const c = useThemeColors();
   const buckets = [
     { range: "0-10", min: 0, max: 10 },
     { range: "10-30", min: 10, max: 30 },
@@ -57,20 +75,16 @@ export function DepthDistribution({ quakes }: { quakes: Quake[] }) {
     }).length,
   }));
   return (
-    <ResponsiveContainer width="100%" height={180}>
-      <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.3 0.03 250)" />
-        <XAxis dataKey="range" stroke="oklch(0.7 0.03 250)" fontSize={11} />
-        <YAxis stroke="oklch(0.7 0.03 250)" fontSize={11} allowDecimals={false} />
+    <ResponsiveContainer width="100%" height={160}>
+      <BarChart data={data} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke={c.grid} vertical={false} />
+        <XAxis dataKey="range" stroke={c.axis} fontSize={10} tickLine={false} axisLine={false} />
+        <YAxis stroke={c.axis} fontSize={10} allowDecimals={false} tickLine={false} axisLine={false} />
         <Tooltip
-          contentStyle={{
-            background: "oklch(0.21 0.025 250)",
-            border: "1px solid oklch(0.3 0.03 250)",
-            borderRadius: 8,
-            color: "oklch(0.96 0.01 240)",
-          }}
+          cursor={{ fill: c.grid, opacity: 0.3 }}
+          contentStyle={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 6, color: c.fg, fontSize: 12 }}
         />
-        <Bar dataKey="count" fill="oklch(0.7 0.18 200)" radius={[6, 6, 0, 0]} />
+        <Bar dataKey="count" fill="var(--primary)" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );
