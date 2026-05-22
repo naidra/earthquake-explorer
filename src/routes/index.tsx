@@ -1,14 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Activity, Globe2, RefreshCw, Waves, Zap } from "lucide-react";
+import { Activity, Globe2, Magnet, RefreshCw, Waves, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { fetchQuakes, type Quake, type USGSResponse } from "@/lib/usgs";
+import { fetchMagnetometers, type MagnetometerSample } from "@/lib/noaa";
 import { QuakeList } from "@/components/QuakeList";
 import { QuakeDetail } from "@/components/QuakeDetail";
 import { MagnitudeHistogram, DepthDistribution } from "@/components/QuakeCharts";
 import { QuakeMap } from "@/components/QuakeMap";
+import { MagnetometerChart } from "@/components/MagnetometerChart";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const Route = createFileRoute("/")({
@@ -42,6 +44,9 @@ function Dashboard() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [mag, setMag] = useState<MagnetometerSample[]>([]);
+  const [magLoading, setMagLoading] = useState(true);
+  const [magError, setMagError] = useState<string | null>(null);
 
   useEffect(() => setMounted(true), []);
 
