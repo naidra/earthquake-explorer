@@ -78,7 +78,7 @@ export function MagnetometerChart({ samples }: { samples: MagnetometerSample[] }
             fontSize: 12,
           }}
           labelFormatter={(v) => new Date(v as number).toLocaleString()}
-          formatter={(value: number, name: string) => [`${value.toFixed(2)} nT`, name]}
+          formatter={(value, name) => [`${Number(value).toFixed(2)} nT`, name as string]}
         />
         <Legend wrapperStyle={{ fontSize: 11 }} iconType="line" />
         <Line type="monotone" dataKey="Hp" stroke="oklch(0.65 0.2 280)" dot={false} strokeWidth={1.5} name="Hp (parallel)" />
