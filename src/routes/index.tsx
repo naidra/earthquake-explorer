@@ -1,14 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Activity, Globe2, RefreshCw, Waves, Zap } from "lucide-react";
+import { Activity, Globe2, Magnet, RefreshCw, Waves, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { fetchQuakes, type Quake, type USGSResponse } from "@/lib/usgs";
+import { fetchMagnetometers, type MagnetometerSample } from "@/lib/noaa";
 import { QuakeList } from "@/components/QuakeList";
 import { QuakeDetail } from "@/components/QuakeDetail";
 import { MagnitudeHistogram, DepthDistribution } from "@/components/QuakeCharts";
 import { QuakeMap } from "@/components/QuakeMap";
+import { MagnetometerChart } from "@/components/MagnetometerChart";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const Route = createFileRoute("/")({
@@ -42,6 +44,9 @@ function Dashboard() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [mag, setMag] = useState<MagnetometerSample[]>([]);
+  const [magLoading, setMagLoading] = useState(true);
+  const [magError, setMagError] = useState<string | null>(null);
 
   useEffect(() => setMounted(true), []);
 
@@ -61,6 +66,31 @@ function Dashboard() {
       cancel = true;
     };
   }, [limit, refreshKey]);
+
+  useEffect(() => {
+    let cancel = false;
+    setMagLoading(true);
+    setMagError(null);
+    fetchMagnetometers()
+      .then((d) => !cancel && setMag(d))
+      .catch((e) => !cancel && setMagError(e.message))
+      .finally(() => !cancel && setMagLoading(false));
+    return () => {
+      cancel = true;
+    };
+  }, [refreshKey]);
+
+  const magStats = useMemo(() => {
+    if (!mag.length) return { latest: null as MagnetometerSample | null, min: 0, max: 0, satellite: 0 };
+    const latest = mag[mag.length - 1];
+    const totals = mag.map((m) => m.total);
+    return {
+      latest,
+      min: Math.min(...totals),
+      max: Math.max(...totals),
+      satellite: latest.satellite,
+    };
+  }, [mag]);
 
   const quakes: Quake[] = data?.features ?? [];
   const selected = quakes.find((q) => q.id === selectedId) ?? null;
@@ -120,11 +150,17 @@ function Dashboard() {
       </header>
 
       <main className="mx-auto max-w-[1600px] space-y-4 px-5 py-4">
-        <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <section className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           <StatCard icon={Globe2} label="Events" value={String(quakes.length)} />
           <StatCard icon={Zap} label="Max Magnitude" value={stats.max.toFixed(1)} accent="oklch(0.6 0.22 25)" />
           <StatCard icon={Activity} label="Avg Magnitude" value={stats.avg.toFixed(2)} accent="oklch(0.7 0.17 75)" />
           <StatCard icon={Waves} label="Tsunami Alerts" value={String(stats.tsunami)} accent="oklch(0.6 0.15 220)" />
+          <StatCard
+            icon={Magnet}
+            label={`B-field (GOES-${magStats.satellite || "—"})`}
+            value={magStats.latest ? `${magStats.latest.total.toFixed(1)} nT` : "—"}
+            accent="oklch(0.65 0.2 280)"
+          />
         </section>
 
         {error && (
@@ -180,8 +216,44 @@ function Dashboard() {
           </div>
         </section>
 
+        <section className="overflow-hidden rounded-lg border border-border bg-card p-3 shadow-[var(--shadow-card)]">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                <Magnet className="h-3.5 w-3.5" style={{ color: "oklch(0.65 0.2 280)" }} />
+                Earth magnetic field — GOES magnetometer (last 24h)
+              </h3>
+              <p className="text-[11px] text-muted-foreground">
+                {magStats.latest
+                  ? `GOES-${magStats.satellite} · range ${magStats.min.toFixed(1)}–${magStats.max.toFixed(1)} nT · updated ${new Date(magStats.latest.time_tag).toLocaleString()}`
+                  : magLoading
+                  ? "Loading NOAA SWPC data…"
+                  : "No data"}
+              </p>
+            </div>
+            {magStats.latest && (
+              <div className="flex gap-3 text-[11px] tabular-nums text-muted-foreground">
+                <span>Hp <span className="text-foreground">{magStats.latest.Hp.toFixed(1)}</span></span>
+                <span>He <span className="text-foreground">{magStats.latest.He.toFixed(1)}</span></span>
+                <span>Hn <span className="text-foreground">{magStats.latest.Hn.toFixed(1)}</span></span>
+              </div>
+            )}
+          </div>
+          {magError ? (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              {magError}
+            </div>
+          ) : magLoading && !mag.length ? (
+            <div className="flex h-[220px] items-center justify-center text-xs text-muted-foreground">
+              Loading magnetometer data…
+            </div>
+          ) : (
+            <MagnetometerChart samples={mag} />
+          )}
+        </section>
+
         <footer className="pt-2 text-center text-[11px] text-muted-foreground">
-          Data: U.S. Geological Survey · {data && new Date(data.metadata.generated).toLocaleString()}
+          Data: U.S. Geological Survey · NOAA SWPC · {data && new Date(data.metadata.generated).toLocaleString()}
         </footer>
       </main>
     </div>
