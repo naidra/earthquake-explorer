@@ -150,11 +150,17 @@ function Dashboard() {
       </header>
 
       <main className="mx-auto max-w-[1600px] space-y-4 px-5 py-4">
-        <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <section className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           <StatCard icon={Globe2} label="Events" value={String(quakes.length)} />
           <StatCard icon={Zap} label="Max Magnitude" value={stats.max.toFixed(1)} accent="oklch(0.6 0.22 25)" />
           <StatCard icon={Activity} label="Avg Magnitude" value={stats.avg.toFixed(2)} accent="oklch(0.7 0.17 75)" />
           <StatCard icon={Waves} label="Tsunami Alerts" value={String(stats.tsunami)} accent="oklch(0.6 0.15 220)" />
+          <StatCard
+            icon={Magnet}
+            label={`B-field (GOES-${magStats.satellite || "—"})`}
+            value={magStats.latest ? `${magStats.latest.total.toFixed(1)} nT` : "—"}
+            accent="oklch(0.65 0.2 280)"
+          />
         </section>
 
         {error && (
