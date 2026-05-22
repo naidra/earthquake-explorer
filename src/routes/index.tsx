@@ -216,8 +216,44 @@ function Dashboard() {
           </div>
         </section>
 
+        <section className="overflow-hidden rounded-lg border border-border bg-card p-3 shadow-[var(--shadow-card)]">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                <Magnet className="h-3.5 w-3.5" style={{ color: "oklch(0.65 0.2 280)" }} />
+                Earth magnetic field — GOES magnetometer (last 24h)
+              </h3>
+              <p className="text-[11px] text-muted-foreground">
+                {magStats.latest
+                  ? `GOES-${magStats.satellite} · range ${magStats.min.toFixed(1)}–${magStats.max.toFixed(1)} nT · updated ${new Date(magStats.latest.time_tag).toLocaleString()}`
+                  : magLoading
+                  ? "Loading NOAA SWPC data…"
+                  : "No data"}
+              </p>
+            </div>
+            {magStats.latest && (
+              <div className="flex gap-3 text-[11px] tabular-nums text-muted-foreground">
+                <span>Hp <span className="text-foreground">{magStats.latest.Hp.toFixed(1)}</span></span>
+                <span>He <span className="text-foreground">{magStats.latest.He.toFixed(1)}</span></span>
+                <span>Hn <span className="text-foreground">{magStats.latest.Hn.toFixed(1)}</span></span>
+              </div>
+            )}
+          </div>
+          {magError ? (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              {magError}
+            </div>
+          ) : magLoading && !mag.length ? (
+            <div className="flex h-[220px] items-center justify-center text-xs text-muted-foreground">
+              Loading magnetometer data…
+            </div>
+          ) : (
+            <MagnetometerChart samples={mag} />
+          )}
+        </section>
+
         <footer className="pt-2 text-center text-[11px] text-muted-foreground">
-          Data: U.S. Geological Survey · {data && new Date(data.metadata.generated).toLocaleString()}
+          Data: U.S. Geological Survey · NOAA SWPC · {data && new Date(data.metadata.generated).toLocaleString()}
         </footer>
       </main>
     </div>
