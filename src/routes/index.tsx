@@ -211,7 +211,7 @@ function Dashboard() {
       </header>
 
       <main className="mx-auto max-w-[1600px] space-y-4 px-5 py-4">
-        <section className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <section className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-7">
           <StatCard icon={Globe2} label="Events" value={String(quakes.length)} />
           <StatCard icon={Zap} label="Max Magnitude" value={stats.max.toFixed(1)} accent="oklch(0.6 0.22 25)" />
           <StatCard icon={Activity} label="Avg Magnitude" value={stats.avg.toFixed(2)} accent="oklch(0.7 0.17 75)" />
@@ -221,6 +221,18 @@ function Dashboard() {
             label={`B-field (GOES-${magStats.satellite || "—"})`}
             value={magStats.latest ? `${magStats.latest.total.toFixed(1)} nT` : "—"}
             accent="oklch(0.65 0.2 280)"
+          />
+          <StatCard
+            icon={Wind}
+            label="Solar Wind"
+            value={plasmaStats.latest?.speed != null ? `${plasmaStats.latest.speed.toFixed(0)} km/s` : "—"}
+            accent="oklch(0.65 0.22 35)"
+          />
+          <StatCard
+            icon={Siren}
+            label="SWPC Alerts"
+            value={`${alertCounts.critical}/${alertCounts.total}`}
+            accent="oklch(0.6 0.26 25)"
           />
         </section>
 
@@ -311,6 +323,70 @@ function Dashboard() {
           ) : (
             <MagnetometerChart samples={mag} />
           )}
+        </section>
+
+        <section className="grid gap-4 lg:grid-cols-3">
+          <div className="overflow-hidden rounded-lg border border-border bg-card p-3 shadow-[var(--shadow-card)] lg:col-span-2">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                  <Wind className="h-3.5 w-3.5" style={{ color: "oklch(0.65 0.22 35)" }} />
+                  Solar wind — DSCOVR plasma (last 7 days)
+                </h3>
+                <p className="text-[11px] text-muted-foreground">
+                  {plasmaStats.latest
+                    ? `Avg ${plasmaStats.avgSpeed.toFixed(0)} · peak ${plasmaStats.maxSpeed.toFixed(0)} km/s · updated ${new Date(plasmaStats.latest.time_tag.replace(" ", "T") + "Z").toLocaleString()}`
+                    : plasmaLoading
+                    ? "Loading NOAA SWPC data…"
+                    : "No data"}
+                </p>
+              </div>
+              {plasmaStats.latest && (
+                <div className="flex gap-3 text-[11px] tabular-nums text-muted-foreground">
+                  <span>Speed <span className="text-foreground">{plasmaStats.latest.speed?.toFixed(0)} km/s</span></span>
+                  <span>Density <span className="text-foreground">{plasmaStats.latest.density?.toFixed(2)} p/cc</span></span>
+                  <span>Temp <span className="text-foreground">{plasmaStats.latest.temperature?.toFixed(0)} K</span></span>
+                </div>
+              )}
+            </div>
+            {plasmaError ? (
+              <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                {plasmaError}
+              </div>
+            ) : plasmaLoading && !plasma.length ? (
+              <div className="flex h-[220px] items-center justify-center text-xs text-muted-foreground">
+                Loading solar wind data…
+              </div>
+            ) : (
+              <SolarWindChart samples={plasma} />
+            )}
+          </div>
+
+          <div className="overflow-hidden rounded-lg border border-border bg-card shadow-[var(--shadow-card)]">
+            <div className="flex items-center justify-between border-b border-border px-3 py-2">
+              <div>
+                <h3 className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                  <Siren className="h-3.5 w-3.5" style={{ color: "oklch(0.6 0.26 25)" }} />
+                  Space weather alerts
+                </h3>
+                <p className="text-[11px] text-muted-foreground">NOAA SWPC active messages</p>
+              </div>
+              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+                {alerts.length}
+              </span>
+            </div>
+            <div className="max-h-[400px] overflow-y-auto">
+              {alertsError ? (
+                <div className="m-3 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                  {alertsError}
+                </div>
+              ) : alertsLoading && !alerts.length ? (
+                <div className="p-6 text-center text-xs text-muted-foreground">Loading alerts…</div>
+              ) : (
+                <AlertsList alerts={alerts.slice(0, 40)} />
+              )}
+            </div>
+          </div>
         </section>
 
         <footer className="pt-2 text-center text-[11px] text-muted-foreground">
