@@ -67,6 +67,31 @@ function Dashboard() {
     };
   }, [limit, refreshKey]);
 
+  useEffect(() => {
+    let cancel = false;
+    setMagLoading(true);
+    setMagError(null);
+    fetchMagnetometers()
+      .then((d) => !cancel && setMag(d))
+      .catch((e) => !cancel && setMagError(e.message))
+      .finally(() => !cancel && setMagLoading(false));
+    return () => {
+      cancel = true;
+    };
+  }, [refreshKey]);
+
+  const magStats = useMemo(() => {
+    if (!mag.length) return { latest: null as MagnetometerSample | null, min: 0, max: 0, satellite: 0 };
+    const latest = mag[mag.length - 1];
+    const totals = mag.map((m) => m.total);
+    return {
+      latest,
+      min: Math.min(...totals),
+      max: Math.max(...totals),
+      satellite: latest.satellite,
+    };
+  }, [mag]);
+
   const quakes: Quake[] = data?.features ?? [];
   const selected = quakes.find((q) => q.id === selectedId) ?? null;
 
