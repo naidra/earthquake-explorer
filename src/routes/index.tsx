@@ -1,16 +1,25 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Activity, Globe2, Magnet, RefreshCw, Waves, Zap } from "lucide-react";
+import { Activity, Globe2, Magnet, RefreshCw, Siren, Waves, Wind, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { fetchQuakes, type Quake, type USGSResponse } from "@/lib/usgs";
-import { fetchMagnetometers, type MagnetometerSample } from "@/lib/noaa";
+import {
+  fetchAlerts,
+  fetchMagnetometers,
+  fetchPlasma,
+  type MagnetometerSample,
+  type ParsedAlert,
+  type PlasmaSample,
+} from "@/lib/noaa";
 import { QuakeList } from "@/components/QuakeList";
 import { QuakeDetail } from "@/components/QuakeDetail";
 import { MagnitudeHistogram, DepthDistribution } from "@/components/QuakeCharts";
 import { QuakeMap } from "@/components/QuakeMap";
 import { MagnetometerChart } from "@/components/MagnetometerChart";
+import { SolarWindChart } from "@/components/SolarWindChart";
+import { AlertsList } from "@/components/AlertsList";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const Route = createFileRoute("/")({
@@ -47,6 +56,12 @@ function Dashboard() {
   const [mag, setMag] = useState<MagnetometerSample[]>([]);
   const [magLoading, setMagLoading] = useState(true);
   const [magError, setMagError] = useState<string | null>(null);
+  const [plasma, setPlasma] = useState<PlasmaSample[]>([]);
+  const [plasmaLoading, setPlasmaLoading] = useState(true);
+  const [plasmaError, setPlasmaError] = useState<string | null>(null);
+  const [alerts, setAlerts] = useState<ParsedAlert[]>([]);
+  const [alertsLoading, setAlertsLoading] = useState(true);
+  const [alertsError, setAlertsError] = useState<string | null>(null);
 
   useEffect(() => setMounted(true), []);
 
@@ -79,6 +94,52 @@ function Dashboard() {
       cancel = true;
     };
   }, [refreshKey]);
+
+  useEffect(() => {
+    let cancel = false;
+    setPlasmaLoading(true);
+    setPlasmaError(null);
+    fetchPlasma()
+      .then((d) => !cancel && setPlasma(d))
+      .catch((e) => !cancel && setPlasmaError(e.message))
+      .finally(() => !cancel && setPlasmaLoading(false));
+    return () => {
+      cancel = true;
+    };
+  }, [refreshKey]);
+
+  useEffect(() => {
+    let cancel = false;
+    setAlertsLoading(true);
+    setAlertsError(null);
+    fetchAlerts()
+      .then((d) => !cancel && setAlerts(d))
+      .catch((e) => !cancel && setAlertsError(e.message))
+      .finally(() => !cancel && setAlertsLoading(false));
+    return () => {
+      cancel = true;
+    };
+  }, [refreshKey]);
+
+  const plasmaStats = useMemo(() => {
+    const valid = plasma.filter((p) => p.speed != null && p.density != null);
+    if (!valid.length) return { latest: null as PlasmaSample | null, avgSpeed: 0, maxSpeed: 0 };
+    const latest = valid[valid.length - 1];
+    const speeds = valid.map((p) => p.speed!).filter((n) => !isNaN(n));
+    return {
+      latest,
+      avgSpeed: speeds.reduce((a, b) => a + b, 0) / speeds.length,
+      maxSpeed: Math.max(...speeds),
+    };
+  }, [plasma]);
+
+  const alertCounts = useMemo(() => {
+    const active = alerts.slice(0, 30);
+    return {
+      total: alerts.length,
+      critical: active.filter((a) => a.severity === "alert" || a.severity === "warning").length,
+    };
+  }, [alerts]);
 
   const magStats = useMemo(() => {
     if (!mag.length) return { latest: null as MagnetometerSample | null, min: 0, max: 0, satellite: 0 };
